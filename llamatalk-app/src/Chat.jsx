@@ -1,4 +1,5 @@
 import React, {useState} from 'react';
+import axios from 'axios';
 
 const Chat = () => {
     // array of messages
@@ -6,6 +7,9 @@ const Chat = () => {
 
     // current input in the text box
     const [input, setInput] = useState('');
+
+    // loading state
+    const[loading, setLoading] = useState(false);
 
     // message sending function
     const sendMessage = async() => {
@@ -15,14 +19,18 @@ const Chat = () => {
         // adding user's message to chat
         setMessages(prev => [...prev, {sender: 'user', text: input}]);
 
-        // sample response
-        const botResponse = `${input}`;
+        // try catch for message send error handling
+        try {
+            const response = await axios.post('/api/chat', {message: input});
 
-        // adding bot's response to chat
-        setMessages(prev => [...prev, {sender: 'bot', text: botResponse}]);
+            setMessages(prev => [...prev, {sender: 'ai', text: response.data.reply}])
+        } catch (error) {
+            console.error('Error sending message:', error);
+            setMessages(prev => [...prev, {sender: 'ai', text: 'Error: Could not reach the server.'}]);
+        }
 
-        // clearing input box here
-        setInput('');
+        setInput(''); // clearing input box
+        setLoading(false);
     };
     return (
         <div style={{maxWidth: '500px', margin: '20px auto', fontFamily: 'sans-serif'}}>
@@ -32,9 +40,9 @@ const Chat = () => {
                         <b>{msg.sender==='user' ? 'You' : 'AI'}:</b> {msg.text}
                     </p>
                 ))}
+                {loading && <p><i>AI is typing...</i></p>}
             </div>
-
-            <div style={{display: 'flex', marginTop: '10px'}}>
+            <form onSubmit={sendMessage} style={{display: 'flex', marginTop: '10px'}}>
                 <input
                     style={{flex: 1, padding: '5px'}}
                     type="text"
@@ -42,10 +50,9 @@ const Chat = () => {
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && sendMessage()}
                     placeholder='Type your message...'/>
-                    <button style={{marginLeft: '5px'}} onClick={sendMessage}>Send</button>
-                
-            </div>
-
+                    <button style={{marginLeft: '5px'}} onClick={sendMessage}>Send</button>    
+            </form>
+           
         </div>
     );
 
